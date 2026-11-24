@@ -18,11 +18,11 @@ export async function POST(req:Request,ctx:{params:Promise<{portId:string}>}){
  if(insertError)return jsonError("Falha ao registrar leitura.",500);
  const secret=decryptJson<{secret:string}>(port.webhook_secret).secret;const body=JSON.stringify(payload);const signature=signPayload(secret,body);
  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),8000);
- let responseStatus:number|null=null;let responseBody="";
- try{const response=await fetch(port.webhook_url,{method:"POST",headers:{"Content-Type":"application/json","X-Scan-Event":eventId,"X-Scan-Signature":`sha256=${signature}`},body,signal:controller.signal,redirect:"error",cache:"no-store"});responseStatus=response.status;responseBody=(await response.text()).slice(0,1000);}
- catch(e){responseBody=e instanceof Error?e.message:"Webhook delivery failed";}
+ let responseStatus:number|null=null;let failureReason="";
+ try{const response=await fetch(port.webhook_url,{method:"POST",headers:{"Content-Type":"application/json","X-Scan-Event":eventId,"X-Scan-Signature":`sha256=${signature}`},body,signal:controller.signal,redirect:"error",cache:"no-store"});responseStatus=response.status;}
+ catch(e){failureReason=e instanceof Error?e.message:"Webhook delivery failed";}
  finally{clearTimeout(timer);}
  const delivered=responseStatus!==null&&responseStatus>=200&&responseStatus<300;
- await db.from("webhook_deliveries").insert({event_id:eventId,port_id:portId,status:delivered?"delivered":"failed",http_status:responseStatus,response_excerpt:responseBody});
+ await db.from("webhook_deliveries").insert({event_id:eventId,port_id:portId,status:delivered?"delivered":"failed",http_status:responseStatus,response_excerpt:failureReason.slice(0,300)});
  return Response.json({ok:true,eventId,webhook:{delivered,httpStatus:responseStatus}}, {status:202});
 }
