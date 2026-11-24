@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { bearer, sha256, safeEqual, signPayload, jsonError } from "@/lib/security";
 import { scanSchema } from "@/lib/schemas";
+import { decryptJson } from "@/lib/crypto";
 export const runtime="nodejs";
 export async function POST(req:Request,ctx:{params:Promise<{portId:string}>}){
  const {portId}=await ctx.params;const token=bearer(req);if(!token)return jsonError("Bearer token obrigatório.",401);
@@ -15,7 +16,7 @@ export async function POST(req:Request,ctx:{params:Promise<{portId:string}>}){
  const eventId=crypto.randomUUID();const payload={event:"barcode.scanned",eventId,requestId:request.external_request_id,barcode:parsed.data.barcode,scannedAt:new Date().toISOString()};
  const {error:insertError}=await db.from("scan_events").insert({id:eventId,port_id:portId,request_id:request.id,barcode:parsed.data.barcode,payload});
  if(insertError)return jsonError("Falha ao registrar leitura.",500);
- const body=JSON.stringify(payload);const signature=signPayload(port.webhook_secret,body);
+ const secret=decryptJson<{secret:string}>(port.webhook_secret).secret;const body=JSON.stringify(payload);const signature=signPayload(secret,body);
  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),8000);
  let responseStatus:number|null=null;let responseBody="";
  try{const response=await fetch(port.webhook_url,{method:"POST",headers:{"Content-Type":"application/json","X-Scan-Event":eventId,"X-Scan-Signature":`sha256=${signature}`},body,signal:controller.signal,redirect:"error",cache:"no-store"});responseStatus=response.status;responseBody=(await response.text()).slice(0,1000);}
