@@ -1,0 +1,25 @@
+name: CI
+on:
+  push:
+    branches: ["migration/neon-postgres-auth"]
+  pull_request:
+    branches: ["main"]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm run build
+        env:
+          DATABASE_URL: postgresql://build:build@127.0.0.1:5432/build
+          BETTER_AUTH_SECRET: ci-only-secret-not-for-production-000000000000000000000000
+          BETTER_AUTH_URL: http://localhost:3000
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+          DATA_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+          WEBHOOK_ALLOWED_HOSTS: hooks.example.com
