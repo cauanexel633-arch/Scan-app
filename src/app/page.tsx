@@ -1,0 +1,4 @@
+import Link from "next/link";
+export default function Home() {
+  return <main className="shell"><p className="muted">SCAN-APP / INTEGRAÇÕES</p><h1>Leitura inteligente.<br/>Integração segura.</h1><p className="muted">Crie portas exclusivas, receba dados de solicitações e encaminhe cada leitura de código de barras ao webhook configurado.</p><div className="panel stack"><div className="row"><span className="pill">API protegida por token</span><span className="pill">Webhook por evento</span></div><h2>Gerencie suas portas</h2><p className="muted">Entre com sua conta para criar e administrar integrações.</p><Link href="/login">Acessar painel →</Link></div></main>;
+}
